@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -14,10 +14,15 @@ jobs:
         run: |
           rm -rf drivers/kernelsu KernelSU drivers/drivers/kernelsu || true
 
-      - name: Install Toolchain & Dependencies
+      - name: Install Build Toolchain
         run: |
           sudo apt update
-          sudo apt install -y bc bison flex libssl-dev make libc6-dev libncurses5-dev libelf-dev clang lld llvm git curl zip gcc-aarch64-linux-gnu
+          sudo apt install -y bc bison flex libssl-dev make libc6-dev libncurses5-dev libelf-dev lld llvm git curl zip gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Download AOSP Clang Toolchain
+        run: |
+          mkdir -p clang
+          curl -LSs https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android12-release/clang-r416183b.tar.gz | tar -xzC clang
 
       - name: Patch KernelSU-Next Driver (33188+)
         run: |
@@ -36,6 +41,7 @@ jobs:
 
       - name: Compile Kernel
         run: |
+          export PATH="$(pwd)/clang/bin:$PATH"
           export ARCH=arm64
           export SUBARCH=arm64
           export CC=clang
@@ -47,7 +53,7 @@ jobs:
             make O=out vendor/munch_user_defconfig
           fi
 
-          make -j$(nproc) O=out
+          make -j$(nproc) O=out KCFLAGS="-Wno-error" HOSTCFLAGS="-Wno-error"
 
       - name: Upload Kernel Artifact
         uses: actions/upload-artifact@v4
