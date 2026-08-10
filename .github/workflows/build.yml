@@ -9,11 +9,19 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
 
-      - name: Install Build Toolchain
+      - name: Clean Legacy Driver Directories
+        run: |
+          rm -rf drivers/kernelsu KernelSU || true
+          git rm -rf drivers/kernelsu KernelSU || true
+
+      - name: Install Toolchain & Dependencies
         run: |
           sudo apt update
-          sudo apt install -y bc bison flex libssl-dev make libc6-dev libncurses5-dev libelf-dev clang lld llvm git curl zip
+          sudo apt install -y bc bison flex libssl-dev make libc6-dev libncurses5-dev libelf-dev clang lld llvm git curl zip gcc-aarch64-linux-gnu
 
       - name: Patch KernelSU-Next Driver (33188+)
         run: |
